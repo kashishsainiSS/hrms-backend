@@ -2,12 +2,9 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const secretKey = process.env.JWT_SECRET as string;
-const expiresIn = process.env.EXPIRES_TOKEN || "1h"; // fallback to 1 hour
-
 const generateToken = (payload: object): string => {
   const secretKey = process.env.SECRET_KEY ?? '@#$4515Rahulkushwa_675@#';
-  const token = jwt.sign(payload, secretKey, { expiresIn:"25h"});
+  const token = jwt.sign(payload, secretKey, { expiresIn: process.env.EXPIRES_TOKEN });
   return token;
 };
 
