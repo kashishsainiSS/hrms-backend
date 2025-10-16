@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import fs from "fs";
 import path from "path";
-import { BulkUpload, getMonthly } from "../../repository/attendenceLog/attendenceLog.repository";
+import { BulkUpload, getMonthly, updateAttendanceRecord } from "../../repository/attendenceLog/attendenceLog.repository";
+import { AnyARecord } from "dns";
 
 export const bulkAttendanceUpload = async (req: Request, res: Response) => {
   try {
@@ -81,24 +82,77 @@ export const bulkAttendanceUpload = async (req: Request, res: Response) => {
 };
 
 
-export const getMonthlyService = async(req:Request, res:Response)=>{
-    try {
-const { empId } = req.params;
-   const now:any = new Date();
-    const month = req.query.month || now.getMonth() + 1; 
-    const year = req.query.year || now.getFullYear();
-  const result:any = await getMonthly(empId,parseInt(month),parseInt(year));
-  if(result.status =="success"){
+
+export const getMonthlyService = async (req:any, res:any) => {
+  try {
+    const { empId, month, year, page = 1, limit = 10 } = req.query;
+
+    const result = await getMonthly(
+      empId || null,
+      parseInt(month) || null,
+      parseInt(year) || null,
+      parseInt(page),
+      parseInt(limit)
+    );
+
+    if (result.status === "success") {
       return res.status(200).json({
-      success: true,
-      data:result,
+        success: true,
+        ...result,
+      });
+    }
+
+    return res.status(404).json({
+      success: false,
+      message: result.message || "No data found",
+    });
+  } catch (error:any) {
+    console.error("Error in getMonthlyService:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
     });
   }
-    } catch (error:any) {
-         console.error("Error:", error);
+};
+
+
+
+export const updateAttendanceByHR = async (req:any, res:any) => {
+  try {
+    const { empId, date } = req.params;
+    const { status, inTime, outTime, editedBy } = req.body;
+
+    if (!empId || !date) {
+      return res.status(400).json({
+        success: false,
+        message: "empId and date are required",
+      });
+    }
+
+    const result = await updateAttendanceRecord(empId, date, {
+      status,
+      inTime,
+      outTime,
+      editedBy,
+    });
+
+    if (result.status === "success") {
+      return res.status(200).json({
+        success: true,
+        message: "Attendance updated successfully",
+        data: result.data,
+      });
+    }
+
+    return res.status(404).json({
+      success: false,
+      message: result.message || "Record not found",
+    });
+  } catch (error:any) {
+    console.error("Error in updateAttendanceByHR:", error);
     return res.status(500).json({
       success: false,
       message: error.message || "Internal server error",
-    })
-}
-}
+    });
+  }
+};
